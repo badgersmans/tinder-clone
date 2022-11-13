@@ -1,13 +1,15 @@
-import { Button, Text, View } from 'react-native';
 import tw from 'twrnc';
 import { NavigationContainer } from '@react-navigation/native';
 import StackNavigator from './StackNavigator';
+import { AuthProvider } from './hooks/useAuth';
 
 
 export default function App() {
   return (
     <NavigationContainer>
-      <StackNavigator />
+      <AuthProvider>
+        <StackNavigator />
+      </AuthProvider>
     </NavigationContainer>
   );
 }
