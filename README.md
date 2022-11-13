@@ -1,0 +1,1 @@
+this is the tinder clone v2, using the exact dependencies as the tutorial, this avoids unneccessary issues related to google sign in.
