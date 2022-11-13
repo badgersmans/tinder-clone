@@ -1,6 +1,13 @@
 import { View, Text } from 'react-native'
-import React, { createContext, useContext } from 'react'
+import React, { createContext, useContext, useState } from 'react'
 import * as Google from 'expo-google-app-auth'
+import { 
+    GoogleAuthProvider,
+    onAuthStateChanged,
+    signInWithCredential,
+    signOut
+ } from 'firebase/auth'
+import { auth } from '../firebase'
 
 const AuthContext = createContext({})
 
@@ -13,12 +20,22 @@ const config = {
 
 export const AuthProvider = ({ children }) => {
 
+    const [error, setError] = useState(null)
+
     const signInWithGoogle = async () => {
-        Google.logInAsync(config).then(async (logInResult => {
+        await Google.logInAsync(config).then(async (logInResult) => {
             if(logInResult.type === 'success') {
                 // login...
+                const { idToken, accessToken } = logInResult;
+                console.log(logInResult)
+                const credential = GoogleAuthProvider.credential(idToken, accessToken);
+
+                await signInWithCredential(auth, credential);
             }
-        }))
+
+            return Promise.reject();
+        }).catch(error => setError(error))
+        
     }
 
   return (
