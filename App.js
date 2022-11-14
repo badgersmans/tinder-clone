@@ -1,4 +1,3 @@
-import tw from 'twrnc';
 import { NavigationContainer } from '@react-navigation/native';
 import StackNavigator from './StackNavigator';
 import { AuthProvider } from './hooks/useAuth';

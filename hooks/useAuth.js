@@ -1,5 +1,4 @@
-import { View, Text } from 'react-native'
-import React, { createContext, useContext, useState } from 'react'
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react'
 import * as Google from 'expo-google-app-auth'
 import { 
     GoogleAuthProvider,
@@ -21,29 +20,55 @@ const config = {
 export const AuthProvider = ({ children }) => {
 
     const [error, setError] = useState(null)
+    const [user, setUser] = useState(null)
+    const [loadingInitial, setLoadingInitial] = useState(true)
+    const [loading, setLoading] = useState(false)
+
+    useEffect(() => onAuthStateChanged(auth, (user) => {
+        if(user) {
+            // Logged in
+            setUser(user)
+        } else {
+            // Not logged in
+            setUser(null)
+        }
+        setLoadingInitial(false)
+    }), [])
 
     const signInWithGoogle = async () => {
+        setLoading(true)
+
         await Google.logInAsync(config).then(async (logInResult) => {
             if(logInResult.type === 'success') {
                 // login...
                 const { idToken, accessToken } = logInResult;
-                console.log(logInResult)
+                // console.log(logInResult)
                 const credential = GoogleAuthProvider.credential(idToken, accessToken);
 
                 await signInWithCredential(auth, credential);
             }
-
             return Promise.reject();
         }).catch(error => setError(error))
-        
+        .finally(() => setLoading(false))
     }
 
+    const logout = async () => {
+        setLoading(true)
+
+        await signOut(auth).catch(error => setError(error)).finally(()=> setLoading(false));
+    }
+
+    const memoedValue = useMemo(() => ({
+        user,
+        loading,
+        error,
+        signInWithGoogle,
+        logout
+    }), [user, loading, error])
+
   return (
-    <AuthContext.Provider value={{
-        user: null,
-        signInWithGoogle
-    }}>
-      {children}
+    <AuthContext.Provider value={memoedValue}>
+      { !loadingInitial && children}
     </AuthContext.Provider>
   )
 }

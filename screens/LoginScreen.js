@@ -3,10 +3,10 @@ import React from 'react'
 import useAuth from '../hooks/useAuth'
 
 const LoginScreen = () => {
-    const { user, signInWithGoogle } = useAuth()
+    const { loading, signInWithGoogle } = useAuth()
   return (
     <View>
-      <Text>login screen</Text>
+      <Text>{loading ? 'Loading...' : 'Login to the app'}</Text>
       <Button title="Sign In With Google" onPress={signInWithGoogle}/>
     </View>
   )
