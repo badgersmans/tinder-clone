@@ -18,7 +18,7 @@ const StackNavigator = () => {
             headerShown: false
         }}
     >
-        { user ? (
+        { true ? (
             <>
                 <Stack.Screen name="Home" component={HomeScreen} />
                 <Stack.Screen name="Chat" component={ChatScreen} />
