@@ -16,7 +16,7 @@ const HomeScreen = () => {
     {
       firstName: 'Darlene',
       lastName: 'Alderson',
-      occupation: 'fsociety member',
+      job: 'fsociety member',
       photoURL: 'https://static.wikia.nocookie.net/mrrobot/images/5/5c/Tumblr_96060a66d3af926ec3f638882b6ebb79_b2da2bc6_640.jpg/revision/latest?cb=20190928213622',
       age: 24,
       id: 123
@@ -24,7 +24,7 @@ const HomeScreen = () => {
     {
       firstName: 'Elon',
       lastName: 'Musk',
-      occupation: 'Software Developer',
+      job: 'Software Developer',
       photoURL: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/Elon_Musk_Royal_Society_%28crop2%29.jpg/1280px-Elon_Musk_Royal_Society_%28crop2%29.jpg',
       age: 24,
       id: 456
@@ -32,7 +32,7 @@ const HomeScreen = () => {
     {
       firstName: 'Angela',
       lastName: 'Moss',
-      occupation: 'fsociety member',
+      job: 'fsociety member',
       photoURL: 'https://www.denofgeek.com/wp-content/uploads/2019/10/mr-robot-season-4-angela-moss.jpg?resize=768%2C432',
       age: 24,
       id: 789
@@ -72,12 +72,26 @@ const HomeScreen = () => {
         <View style={tw`flex-1 -mt-6`}>
           <Swiper 
             cards={DUMMY_DATA}
+            stackSize={5}
+            cardIndex={0}
+            verticalSwipe={false}
+            animateCardOpacity
             renderCard={card => (
               <View style={tw`bg-white h-3/4 rounded-xl relative`} key={card.id}>
                 <Image 
                   source={{uri: card.photoURL}}
                   style={tw`h-full w-full rounded-xl absolute top-0`}
                 />
+
+                <View 
+                  style={tw`bg-white w-full h-20 absolute bottom-0 justify-between items-center flex-row px-6 py-2 rounded-b-xl shadow-xl`}
+                >
+                  <View style={tw`text-xl font-bold`}>
+                    <Text>{card.firstName} {card.lastName}</Text>
+                    <Text>{card.job}</Text>
+                  </View>
+                  <Text style={tw`text-2xl font-bold`}>{card.age}</Text>
+                </View>
               </View>
             )}
             containerStyle={{ backgroundColor: "transparent" }}
