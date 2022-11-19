@@ -1,16 +1,20 @@
 import { StatusBar } from 'expo-status-bar';
 import { View, Text, Button, SafeAreaView, TouchableOpacity, Image } from 'react-native'
-import React, { useLayoutEffect, useRef } from 'react'
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import tw from 'twrnc';
 import { useNavigation } from '@react-navigation/native';
 import useAuth from '../hooks/useAuth';
 import { AntDesign, Entypo, Ionicons } from '@expo/vector-icons'
 import Swiper from 'react-native-deck-swiper'
+import { onSnapshot, doc, collection } from 'firebase/firestore';
+import { db } from '../firebase';
+
 
 const HomeScreen = () => {
 
   const navigation = useNavigation();
   const { user, logout } = useAuth();
+  const [profiles, setProfiles] = useState([])
   const swipeRef = useRef(null);
 
   const DUMMY_DATA = [
@@ -39,6 +43,37 @@ const HomeScreen = () => {
       id: 789
     },
   ]
+
+
+  const docRef = doc(db, "users", user.uid);
+
+  useLayoutEffect(() => onSnapshot(docRef, snapshot => {
+    console.log(snapshot);
+      if(!snapshot.exists()) {
+        navigation.navigate('Modal')
+      }
+  }), [])
+
+  useEffect(() => {
+    let unsub;
+
+    const fetchCards = async() => {
+      unsub = onSnapshot(collection(db, 'users'), snapshot => {
+        setProfiles(
+          snapshot.docs.filter(doc => doc.id !== user.uid).map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }))
+        )
+      })
+    }
+
+    fetchCards();
+
+    return unsub;
+  }, [])
+
+  console.log(profiles)
 
   return (
     <SafeAreaView style={tw`flex-1`}>
@@ -73,7 +108,7 @@ const HomeScreen = () => {
         <View style={tw`flex-1 -mt-6`}>
           <Swiper 
             ref={swipeRef}
-            cards={DUMMY_DATA}
+            cards={profiles}
             stackSize={5}
             cardIndex={0}
             verticalSwipe={false}
@@ -103,7 +138,7 @@ const HomeScreen = () => {
               },
             }}
             animateCardOpacity
-            renderCard={card => (
+            renderCard={card => card ? (
               <View style={tw`bg-white h-3/4 rounded-xl relative`} key={card.id}>
                 <Image 
                   source={{uri: card.photoURL}}
@@ -120,7 +155,22 @@ const HomeScreen = () => {
                   <Text style={tw`text-2xl font-bold`}>{card.age}</Text>
                 </View>
               </View>
-            )}
+            ) : (
+              <View
+                style={
+                  tw`relative bg-white h-3/4 rounded-xl justify-center items-center shadow-xl`}
+              >
+                <Text style={tw`text-xl font-bold pb-5`}>No more people</Text>
+
+                <Image 
+                  source={{ uri: 'https://links.papareact.com/6gb' }}
+                  style={tw`h-20 w-full`}
+                  height={100}
+                  width={100}
+                />
+              </View>
+            )
+          }
             containerStyle={{ backgroundColor: "transparent" }}
           />
         </View>
