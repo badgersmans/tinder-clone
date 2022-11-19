@@ -6,8 +6,9 @@ import { useNavigation } from '@react-navigation/native';
 import useAuth from '../hooks/useAuth';
 import { AntDesign, Entypo, Ionicons } from '@expo/vector-icons'
 import Swiper from 'react-native-deck-swiper'
-import { onSnapshot, doc, collection } from 'firebase/firestore';
+import { onSnapshot, doc, collection, setDoc, getDocs, query, where, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
+import generateId from '../lib/generateId';
 
 
 const HomeScreen = () => {
@@ -44,11 +45,10 @@ const HomeScreen = () => {
     },
   ]
 
-
   const docRef = doc(db, "users", user.uid);
 
-  useLayoutEffect(() => onSnapshot(docRef, snapshot => {
-    console.log(snapshot);
+  useLayoutEffect(() => onSnapshot(docRef, (snapshot) => {
+    // console.log(snapshot);
       if(!snapshot.exists()) {
         navigation.navigate('Modal')
       }
@@ -58,9 +58,26 @@ const HomeScreen = () => {
     let unsub;
 
     const fetchCards = async() => {
-      unsub = onSnapshot(collection(db, 'users'), snapshot => {
+
+      const passes = await getDocs(collection(db, 'users', user.uid, 'passes'))
+      .then((snapshot) => snapshot.docs.map((doc) => doc.id))
+
+      const swipes = await getDocs(collection(db, 'users', user.uid, 'swipes'))
+      .then((snapshot) => snapshot.docs.map((doc) => doc.id))
+
+      const passedUserIds = passes.length > 0 ? passes : ['test']
+      const swipedUserIds = swipes.length > 0 ? swipes : ['test']
+
+      unsub = onSnapshot(
+        query(
+          collection(db, 'users'), 
+          where('id', 'not-in', [...passedUserIds, ...swipedUserIds])
+        ), 
+        (snapshot) => {
         setProfiles(
-          snapshot.docs.filter(doc => doc.id !== user.uid).map(doc => ({
+          snapshot.docs
+          .filter((doc) => doc.id !== user.uid)
+          .map((doc) => ({
             id: doc.id,
             ...doc.data()
           }))
@@ -69,11 +86,69 @@ const HomeScreen = () => {
     }
 
     fetchCards();
-
     return unsub;
-  }, [])
+  }, [db, profiles])
 
-  console.log(profiles)
+  // console.log(profiles)
+
+  const swipeLeft = (cardIndex) => {
+    
+    if(!profiles[cardIndex]) return;
+    
+    const userSwiped = profiles[cardIndex]
+    const docRef = doc(db, "users", user.uid, 'passes', userSwiped.id);
+
+    console.log(`wtf is userSwiped? ${userSwiped}`)
+    console.log(`wtf is cardIndex? ${cardIndex}`)
+    console.log(`swiped PASS on ${userSwiped.displayName}`);
+
+    setDoc(docRef, userSwiped)
+  }
+
+  const swipeRight = async (cardIndex) => {
+    if(!profiles[cardIndex]) return;
+    
+    const userSwiped = profiles[cardIndex]
+    // const docRef = doc(db, "users", user.uid, 'swipes', userSwiped.id);
+    const loggedInProfile = await (await getDoc(doc(db, 'users', user.uid))).data();
+    
+    // check if user swiped on you...
+    getDoc(doc(db, 'users', userSwiped.id, 'swipes', user.uid))
+    .then((documentSnapshot) => {
+      if(documentSnapshot.exists()) {
+        // user has matched with you before you matched with them
+        console.log(`YOU MATCHED WITH ${userSwiped.displayName}`)
+        
+        setDoc(
+          doc(db, 'users', user.uid, 'swipes', userSwiped.id), 
+          userSwiped
+        )
+
+        // create a MATCH!
+        setDoc(doc(db, 'matches', generateId(user.uid, userSwiped.id)), {
+          users: {
+            [user.uid]: loggedInProfile,
+            [userSwiped.id]: userSwiped
+          },
+          usersMatch: [user.uid, userSwiped.id],
+          timestamp: serverTimestamp()
+        });
+
+        navigation.navigate('Match', {
+          loggedInProfile, 
+          userSwiped,
+        })
+      } else {
+        // user has swiped as first interaction between the two or didn't get swiped on...
+        console.log(`swiped on ${userSwiped.displayName} (${userSwiped.job})`);
+        setDoc(
+          doc(db, 'users', user.uid, 'swipes', userSwiped.id), 
+          userSwiped
+        )
+      }
+    })
+  }
+
 
   return (
     <SafeAreaView style={tw`flex-1`}>
@@ -112,11 +187,13 @@ const HomeScreen = () => {
             stackSize={5}
             cardIndex={0}
             verticalSwipe={false}
-            onSwipedLeft={() => {
+            onSwipedLeft={(cardIndex) => {
               console.log('swiped pass...')
+              swipeLeft(cardIndex)
             }}
-            onSwipedRight={() => {
+            onSwipedRight={(cardIndex) => {
               console.log('swiped match...')
+              swipeRight(cardIndex)
             }}
             overlayLabels={{
               left: {
